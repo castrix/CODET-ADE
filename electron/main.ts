@@ -898,12 +898,28 @@ async function command(raw: unknown) {
 
 app.on("web-contents-created", (_event,contents)=>{
   contents.on("before-input-event", (event,input)=>{
-    if(input.type!=="keyDown" || !(input.control || input.meta)) return;
-
+    if(input.type!=="keyDown" || input.alt || !window || window.isDestroyed()) return;
+    const primary = process.platform === "darwin" ? input.meta && !input.control : input.control && !input.meta;
     const key=input.key.toLowerCase();
-    if(input.code==="Backquote"){event.preventDefault();window?.webContents.send("dao:shortcut","terminal");return;}
-    if(terminals?.focusedTab && contents===window?.webContents && !input.shift && key!==",")return;
+    const cycle = key==="tab" && input.control && !input.meta;
+    const bracket = primary && input.shift && ["BracketLeft","BracketRight"].includes(input.code);
+    const numbered = primary && !input.shift && /^Digit[1-9]$/.test(input.code);
+    if(cycle || bracket || numbered) {
+      const tabs=store.state.tabs.filter(t=>t.terminalPlacement!=="panel");
+      if(!tabs.length)return;
+      const current=tabs.findIndex(t=>t.id===store.state.activeTabId);
+      const digit=Number(input.code.slice(-1));
+      const backwards=cycle ? input.shift : input.code==="BracketLeft";
+      const index=numbered ? (digit===9 ? tabs.length-1 : digit-1) : (current+(backwards?-1:1)+tabs.length)%tabs.length;
+      event.preventDefault();
+      if(tabs[index]) window.webContents.send("dao:shortcut","select:"+tabs[index].id);
+      return;
+    }
+    if(!primary || input.shift)return;
+    if(input.code==="Backquote"){event.preventDefault();window.webContents.send("dao:shortcut","terminal");return;}
+    if(terminals?.focusedTab && contents===window.webContents && process.platform!=="darwin" && !["t","w",","].includes(key))return;
     if(!["p","t","w","l",",","r","j"].includes(key)) return;
+    if(input.isAutoRepeat && (key==="w" || key==="t")){event.preventDefault();return;}
     event.preventDefault();
     if(key==="r" && contents!==window?.webContents) {contents.reload();return;}
     if(window && !window.isDestroyed()) {if(["p","l",",","j"].includes(key)) browser?.layout(null);window.webContents.focus();window.webContents.send("dao:shortcut",key);}

@@ -149,6 +149,8 @@ function App() {
   useEffect(()=>{
     const open=(event:Event)=>{setPaletteQuery((event as CustomEvent<{query?:string}>).detail?.query ?? "");setPalette(true);};window.addEventListener("dao:palette",open);
     const unsubscribe=window.dao.onShortcut(key=>{
+      if(key==="t" || key==="w" || key.startsWith("select:")) {setSettings(false);setPalette(false);}
+      if(key.startsWith("select:")) void run({type:"tab.select",id:key.slice(7)});
       if(key==="terminal"){if(folderChat)toggleChatTool("terminal");else window.dispatchEvent(new CustomEvent("dao:terminal-panel"));}
       if(key==="p" || key==="l") {setPaletteQuery("");setPalette(true);}
       if(key===",") setSettings(value=>!value);

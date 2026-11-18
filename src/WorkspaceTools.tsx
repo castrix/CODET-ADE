@@ -15,7 +15,7 @@ export function Settings({snapshot,run,close,initialSection,site}:Props) {
     {section==="Appearance" && <><h3>Chat</h3>{row("Text size",<label className="setting-input"><input aria-label="Chat text size" type="range" min="11" max="20" value={preferences.fontSize} onChange={e=>void run({type:"preferences.update",values:{fontSize:Number(e.target.value)}})}/><span>{preferences.fontSize}px</span></label>)}{row("Theme","Dark")}</>}
     {section==="Providers" && <ConnectorSettings snapshot={snapshot} run={run}/>}
     {browserSections.includes(section) && <BrowserSettings section={section} snapshot={snapshot} run={run} site={site}/>}
-    {section==="Keybindings" && <>{[["Search tabs, chats, projects and history","Ctrl / Cmd + P"],["New tab","Ctrl / Cmd + T"],["Close tab","Ctrl / Cmd + W"],["Address / search","Ctrl / Cmd + L"],["Reload browser","Ctrl / Cmd + R"],["Settings","Ctrl / Cmd + ,"],["Downloads","Ctrl / Cmd + J"],["Select search result","↑ / ↓, Enter"],["Dismiss search","Escape"]].map(([name,key])=>row(name,<kbd>{key}</kbd>))}</>}
+    {section==="Keybindings" && <>{[["Search tabs, chats, projects and history","Ctrl / Cmd + P"],["New tab","Ctrl / Cmd + T"],["Close tab","Ctrl / Cmd + W"],["Next / previous tab","Ctrl + Tab / Ctrl + Shift + Tab"],["Select tab by position","Ctrl / Cmd + 1–8"],["Select last tab","Ctrl / Cmd + 9"],["Address / search","Ctrl / Cmd + L"],["Reload browser","Ctrl / Cmd + R"],["Settings","Ctrl / Cmd + ,"],["Downloads","Ctrl / Cmd + J"],["Select search result","↑ / ↓, Enter"],["Dismiss search","Escape"]].map(([name,key])=>row(name,<kbd>{key}</kbd>))}</>}
   </div></section>;
 }
 export function Spotlight({snapshot,run,close,initialQuery=""}:Props & {initialQuery?:string}) {
