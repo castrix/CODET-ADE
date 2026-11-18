@@ -83,7 +83,7 @@ function App() {
   useEffect(() => {
     if (!window.dao) {
       setError(
-        "Open DAO ADE with npm run dev or npm start. The desktop bridge is required.",
+        "Open CODET-ADE with npm run dev or npm start. The desktop bridge is required.",
       );
       return;
     }
@@ -163,7 +163,7 @@ function App() {
   if (!snapshot || !state || !project)
     return (
       <div className="boot">
-        <div className="logo">d.</div>
+        <div className="logo" aria-hidden="true">C.</div>
         <p>{error || "Opening your workspace…"}</p>
       </div>
     );
@@ -186,9 +186,9 @@ function App() {
       {sidebar && (
         <aside className="sidebar">
           <div className="brand">
-            <div className="logo">d.</div>
+            <div className="logo" aria-hidden="true">C.</div>
             <span>
-              dao<span className="muted"> / </span>ade
+              CODET<span className="muted">-</span>ADE
             </span>
           </div>
           <button className="new-chat" onClick={() => void create("chat")}>

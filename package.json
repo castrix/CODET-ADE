@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "An independent workspace for conversations, browsers and development tools",
+  "description": "CODET-ADE combines an IDE, a browser, and a coding agent in one desktop workspace",
   "main": "dist-electron/main.cjs",
   "scripts": {
     "dev": "node scripts/dev.mjs",

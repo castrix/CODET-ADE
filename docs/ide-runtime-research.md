@@ -10,7 +10,7 @@ This choice follows platform packaging and integration evidence. It is not a cla
 
 ## Verified comparison
 
-| Criterion | code-server | OpenVSCode Server | Implication for DAO ADE |
+| Criterion | code-server | OpenVSCode Server | Implication for CODET-ADE |
 | --- | --- | --- | --- |
 | Product scope | Hosted Code OSS with additional self-hosting features; upstream code maintained through submodule/patches | Intentionally minimal changes for browser access to VS Code | Both keep the outer application independent |
 | Latest stable release returned by GitHub API | `v4.145.2`, published 2026-11-07; release says Code 1.145.2 | `openvscode-server-v1.109.5`, published 2026-02-20 | Pin the chosen version and audit updates; this snapshot alone does not establish abandonment |

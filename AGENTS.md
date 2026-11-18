@@ -1,4 +1,4 @@
-# DAO ADE project instructions
+# CODET-ADE project instructions
 
 ## Implementation and verification
 
@@ -7,7 +7,7 @@
 - Prioritize implementing the requested product behavior. Do not become preoccupied with testing or spend repeated cycles broadening verification after the change works.
 - Use brief, relevant build/type checks or manual inspection when needed to catch obvious issues. Do not repeat them without a concrete change, failure, or unresolved issue that warrants it.
 - Report what actually works and any material limitations honestly. Do not claim validation that was not performed.
-- After making app changes, build as needed, restart DAO ADE, and confirm its window is open with the updated build. Do not leave restarting to the user. Close gracefully to preserve workspace state; if an active run or unsaved input prevents a safe restart, explain the blocker.
+- After making app changes, build as needed, restart CODET-ADE, and confirm its window is open with the updated build. Do not leave restarting to the user. Close gracefully to preserve workspace state; if an active run or unsaved input prevents a safe restart, explain the blocker.
 
 ## Product priorities
 

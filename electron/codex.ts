@@ -19,7 +19,7 @@ export function codexExecutable(): string {
   const resolve = createRequire(join(app.getAppPath(), "package.json"));
   const packageRoot = dirname(resolve.resolve(`@openai/codex-${process.platform}-${process.arch}/package.json`));
   const executable = join(packageRoot, "vendor", `${cpu}-${target}`, "bin", process.platform === "win32" ? "codex.exe" : "codex");
-  if (!existsSync(executable)) throw new Error("Standalone Codex runtime is missing. Reinstall DAO ADE dependencies including optional packages.");
+  if (!existsSync(executable)) throw new Error("Standalone Codex runtime is missing. Reinstall CODET-ADE dependencies including optional packages.");
   return executable;
 }
 /** JSONL transport only. Lifecycle and UI ownership live above this adapter. */
@@ -54,7 +54,7 @@ export class CodexClient extends EventEmitter {
     // A packaged desktop Core context cannot be transferred to an unpackaged
     // app. Fail closed; never disable its identity checks or change sandbox mode.
     if (process.platform === "win32" && process.env.CODEX_WINDOWS_REGISTERED_CORE === "1") {
-      throw new Error("DAO ADE inherited Codex Desktop's packaged runtime context. Close DAO ADE and launch it from Windows Explorer or its shortcut to use the standalone runtime. Permission settings have not been changed.");
+      throw new Error("CODET-ADE inherited Codex Desktop's packaged runtime context. Close CODET-ADE and launch it from Windows Explorer or its shortcut to use the standalone runtime. Permission settings have not been changed.");
     }
     const executable = this.executable ?? codexExecutable();
     const child = spawn(executable, this.args, {
@@ -112,7 +112,7 @@ export class CodexClient extends EventEmitter {
     });
     try {
       await this.request("initialize", {
-        clientInfo: { name: "dao_ade", title: "DAO ADE", version: "0.1.0" },
+        clientInfo: { name: "dao_ade", title: "CODET-ADE", version: "0.1.0" },
         capabilities: { experimentalApi: true },
       });
       this.write({ method: "initialized" });

@@ -1,6 +1,6 @@
-# DAO ADE
+# CODET-ADE
 
-An independent desktop workspace for Codex conversations and browser tabs. Projects organize work; conversations do not own tools.
+CODET-ADE brings an IDE, a browser, and a coding agent into one desktop workspace. Edit project files, browse the web, and work with your agent in the same window.
 
 ## Run
 

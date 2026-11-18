@@ -374,7 +374,7 @@ codex.on("request", async (request: any) => {
     return;
   }
   // Never silently accept an unsupported server-initiated action.
-  codex.reject(request.id, `DAO ADE does not yet support ${request.method}`);
+  codex.reject(request.id, `CODET-ADE does not yet support ${request.method}`);
   if (c) {
     note(c, `This action is not supported yet: ${request.method}`);
     changed();
@@ -922,7 +922,7 @@ app.whenReady().then(async () => {
     minWidth: 900,
     minHeight: 600,
     backgroundColor: "#0a0a0a",
-    title: "DAO ADE",
+    title: "CODET-ADE",
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, "preload.cjs"),

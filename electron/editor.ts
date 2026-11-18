@@ -39,7 +39,7 @@ export class EditorService {
    connection.onRequest('client/registerCapability',()=>null);
    connection.listen();
    const timeout=setTimeout(()=>child.kill(),20000);
-   await connection.sendRequest('initialize',{processId:process.pid,rootUri:pathToFileURL(root).href,workspaceFolders:[{uri:pathToFileURL(root).href,name:root}],capabilities:{textDocument:{completion:{completionItem:{snippetSupport:true}},hover:{contentFormat:['markdown','plaintext']},publishDiagnostics:{versionSupport:true}}},initializationOptions:{hostInfo:'DAO ADE',tsserver:{path:join(app.getAppPath(),'node_modules/typescript/lib/tsserver.js')}}});
+   await connection.sendRequest('initialize',{processId:process.pid,rootUri:pathToFileURL(root).href,workspaceFolders:[{uri:pathToFileURL(root).href,name:root}],capabilities:{textDocument:{completion:{completionItem:{snippetSupport:true}},hover:{contentFormat:['markdown','plaintext']},publishDiagnostics:{versionSupport:true}}},initializationOptions:{hostInfo:'CODET-ADE',tsserver:{path:join(app.getAppPath(),'node_modules/typescript/lib/tsserver.js')}}});
    clearTimeout(timeout);
    connection.sendNotification('initialized',{});
    child.on('exit',()=>{if(!stopping&&this.servers.has(id)){this.servers.delete(id);this.emit({projectId:id,error:'Language server stopped; reopen the editor to reconnect.'});}});

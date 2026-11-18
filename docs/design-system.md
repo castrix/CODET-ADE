@@ -1,6 +1,6 @@
 # Interface system
 
-DAO ADE defaults to dark mode, including native Electron controls. The visual references are [Vercel Design / Geist](https://vercel.com/design) and [BoardUI](https://www.boardui.com/). The implementation adapts their neutral surface hierarchy, restrained borders, typography, compact navigation, and rounded controls to a desktop workspace; it does not import either site's paid components.
+CODET-ADE defaults to dark mode, including native Electron controls. The visual references are [Vercel Design / Geist](https://vercel.com/design) and [BoardUI](https://www.boardui.com/). The implementation adapts their neutral surface hierarchy, restrained borders, typography, compact navigation, and rounded controls to a desktop workspace; it does not import either site's paid components.
 
 Shared semantic colors live at the start of `src/styles.css`: canvas, surface, raised surface, hover surface, borders, primary/secondary/muted text, and accent. Geist Variable is bundled locally. Blue identifies links and browser groups; green is reserved for connected status. Primary actions use a high-contrast neutral fill.
 

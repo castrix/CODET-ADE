@@ -2,7 +2,7 @@
 
 > Implemented additions (17 November 2026): ACP provider connectors and standalone node-pty/xterm terminal tabs. Windows profiles include PowerShell, Command Prompt and installed WSL distributions; macOS discovers login shells. See `provider-connectors.md` and `terminal-integration.md` for current behavior and limitations.
 
-# DAO ADE: full IDE and independent work tabs
+# CODET-ADE: full IDE and independent work tabs
 
 Project verification rule: do not write tests or add test infrastructure unless explicitly requested. Use concise build/manual checks and prioritize implementation, as specified in `../AGENTS.md`. References below to acceptance tests describe behavior to inspect, not authorization to create automated tests.
 
@@ -37,7 +37,7 @@ The earlier native Code OSS browser/PTY sources remain architectural references 
 ### T3 Code
 
 - The inspected Codex adapter launches and initializes App Server, starts/resumes threads, starts/interrupts turns, and converts native events and approvals into its provider model. Adopt this integration pattern, not its entire orchestration framework. [Codex adapter](https://github.com/pingdotgg/t3code/blob/e9d5bae5cf2846da8a4b035052de0a4faabb5fbd/apps/server/src/orchestration-v2/Adapters/CodexAdapterV2.ts).
-- Its browser runtime ID includes environment ID, thread ID, server epoch, and tab ID. This is precisely the dependency DAO ADE must avoid: browser identity will use a stable resource ID independent of chat. [Browser identity](https://github.com/pingdotgg/t3code/blob/a5c28da6c8bf676e49bf285765fb5e51ae2c8c71/apps/web/src/browser/previewRuntimeTabId.ts).
+- Its browser runtime ID includes environment ID, thread ID, server epoch, and tab ID. This is precisely the dependency CODET-ADE must avoid: browser identity will use a stable resource ID independent of chat. [Browser identity](https://github.com/pingdotgg/t3code/blob/a5c28da6c8bf676e49bf285765fb5e51ae2c8c71/apps/web/src/browser/previewRuntimeTabId.ts).
 - Its terminal manager includes bounded history, debounced persistence, process inspection, and inactive-session limits. Use those as reference requirements; do not inherit thread ownership. [Terminal manager](https://github.com/pingdotgg/t3code/blob/a5c28da6c8bf676e49bf285765fb5e51ae2c8c71/apps/server/src/terminal/Manager.ts).
 
 ### Orca
@@ -92,7 +92,7 @@ Closing a tab detaches a view. Stopping a terminal, closing a browser resource, 
 Use Electron for the desktop shell, React/TypeScript/Vite for application UI, SQLite for application metadata, Electron WebContentsView for browser and IDE surfaces, and xterm.js/node-pty for standalone terminals. Package code-server and its matching Node/native dependencies separately from Electron; never assume Electron's native-module ABI is compatible with the server bundle.
 
 ```text
-DAO ADE Electron application
+CODET-ADE Electron application
   React shell: projects, outer tabs, launcher, chat, layouts
   Application services: resources, persistence, permissions
   Browser manager: independent pages and profiles
