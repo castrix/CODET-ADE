@@ -46,6 +46,7 @@ export type BrowserResource = {
   webContentsId?: number;
 };
 export type WorkTab = {
+  pinned?:boolean;
   groupId?: string;
   id: string;
   projectId: string;
@@ -123,7 +124,9 @@ export type Command =
   | {type:"group.move";id:string;targetId?:string;targetGroupId?:string;after?:boolean}
   | {type:"tab.move";id:string;targetId?:string;after?:boolean;groupId?:string|null}
   | {type:"preferences.update"; values:Partial<Preferences>}
+  | {type:"history.import"}
   | {type:"history.clear"}
+  | {type:"tab.pin"; id:string; pinned:boolean}
   | {type:"tab.menu"; id:string}
   | {type:"message.edit"; conversationId:string; messageId:string; text:string; model?:string; effort?:string; browserId?:string}
   | { type: "link.open"; sourceTabId?: string; target: string; projectId: string }

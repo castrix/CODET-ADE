@@ -1,3 +1,4 @@
+import {AgentActivity} from "./AgentActivity";
 import {EditorAttachments} from './EditorAttachments';
 import {TurnChangesPanel} from './TurnChangesPanel';
 import {ProjectInspector} from "./ProjectInspector";
@@ -555,8 +556,12 @@ function Chat({
     catch(error) {setMessageError(String(error));}
   }
   const bottom = useRef<HTMLDivElement>(null);
+  const following = useRef(true);
+  const [showLatest,setShowLatest] = useState(false);
+  const jumpToLatest = () => { following.current=true; setShowLatest(false); bottom.current?.scrollIntoView({block:"end"}); };
+  useEffect(jumpToLatest,[conversation.id]);
   useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: "instant", block: "end" });
+    if (following.current) bottom.current?.scrollIntoView({ behavior: "instant", block: "end" });
   }, [conversation.messages.length, conversation.messages.at(-1)?.text]);
   const send = async () => {
     if ((!draft.trim() && !attachments.length) || conversation.status==="running" || sending)return;
@@ -568,7 +573,11 @@ function Chat({
   return (
     <div className={`chat ${compact ? "compact" : ""}`}>
       {messageError && <div className="error-text" role="alert">{messageError}</div>}
-      <div className="messages">
+      <div className="messages" onScroll={e=>{
+        const view=e.currentTarget;
+        following.current=view.scrollHeight-view.scrollTop-view.clientHeight < 48;
+        setShowLatest(!following.current);
+      }}>
         {conversation.messages.length === 0 ? (
           <div className="chat-welcome">
             <h1>New conversation</h1>
@@ -589,7 +598,7 @@ function Chat({
           </div>
         ) : (
           conversation.messages.map((message,index) => message.role==="system" ? (
-            conversation.messages[index-1]?.role==="system" ? null : <details className="tool-activity" key={message.id}><summary>Activity</summary>{conversation.messages.slice(index, (()=>{const next=conversation.messages.findIndex((m,i)=>i>index && m.role!=="system");return next<0?undefined:next;})()).map(m=><pre key={m.id}>{m.text}</pre>)}</details>
+            conversation.messages[index-1]?.role==="system" ? null : <AgentActivity key={message.id} steps={conversation.messages.slice(index, (()=>{const next=conversation.messages.findIndex((m,i)=>i>index && m.role!=="system");return next<0?undefined:next;})())}/>
           ) : (
             <article className={`message ${message.role}`} key={message.id}>
               {message.role !== "user" && (
@@ -614,8 +623,8 @@ function Chat({
           ))
         )}
         {conversation.status === "running" && (
-          <div className="working">
-            <span className="pulse dot" /> Codex is working…
+          <div className="working" role="status">
+            <span className="pulse dot" /> {snapshot.connectors.find(p=>p.id===conversation.providerId)?.name ?? "Codex"} is working…
           </div>
         )}
       {snapshot.turnChanges.filter(t=>t.conversationId===conversation.id).map(t=><TurnChangesPanel key={t.id} turn={t} busy={conversation.status==='running'} sourceTabId={snapshot.workspace.activeTabId!} run={run}/>)}
@@ -628,6 +637,7 @@ function Chat({
           <AgentApproval key={a.id} approval={a} run={run}/>
         ))}
       <div className="composer-wrap">
+        {showLatest && <button className="chat-latest" onClick={jumpToLatest}>↓ Latest message</button>}
         <Composer agentManaged={model.startsWith("acp:")} draft={draft} setDraft={setDraft} attachments={attachments} setAttachments={setAttachments}
           context={<EditorAttachments attachment={snapshot.editorAttachment} conversationId={conversation.id} busy={sending||conversation.status==='running'} run={run}/>}
           permission={permission} setPermission={setPermission} projects={snapshot.workspace.projects} projectId={conversation.projectId}

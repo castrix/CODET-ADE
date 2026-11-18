@@ -4,13 +4,13 @@ import {BrowserBridge} from "./browser-bridge";
 import {Connectors,configSchema} from "./connectors";
 import {parseConnectorModel} from "../src/connectors";
 import {EditorService} from "./editor";
-import {stat} from "node:fs/promises";
+import {readFile,realpath,stat} from "node:fs/promises";
 import {pickAttachments,pendingAttachments,attachmentInput,importAttachment,attachmentPreview} from "./attachments";
 import {browserConfigSchema,permissionNames,decisionSchema} from "../src/browser-config";
 import { app, BrowserWindow, ipcMain, dialog, shell, clipboard, Menu, nativeTheme } from "electron";
 import { browserTools, browserInstructions, browserAction } from "./browser-tools";
 import { fileTarget, readTextFile } from "./files";
-import { join } from "node:path";
+import { isAbsolute, join, relative, sep } from "node:path";
 import { z } from "zod";
 import { WorkspaceStore } from "./store";
 import { CodexClient } from "./codex";
@@ -65,7 +65,9 @@ const commandSchema = z.discriminatedUnion("type", [
   z.object({type:z.literal("browser.clear-data"),kind:z.enum(["cache","cookies","site"]),origin:string.optional()}),
   z.object({type:z.literal("extension.action"),id:z.string().regex(/^[a-p]{32}$/),action:z.enum(["enable","disable","remove","reload","options"])}),
   z.object({type:z.literal("preferences.update"),values:z.object({sidebarExpanded:z.boolean().optional(),fontSize:z.number().min(11).max(20).optional(),rememberHistory:z.boolean().optional(),openLinksInNewTab:z.boolean().optional()})}),
+  z.object({type:z.literal("history.import")}),
   z.object({type:z.literal("history.clear")}),
+  z.object({type:z.literal("tab.pin"),id:string,pinned:z.boolean()}),
   z.object({type:z.literal("tab.menu"),id:string}),
   z.object({type:z.literal("project.update"),id:string,name:z.string().trim().min(1).max(80),folderPath:z.string().nullable().optional(),folderAction:z.enum(["keep","choose","clear"]).optional()}),
   z.object({type:z.literal("tab.project"),id:string,projectId:string}),
@@ -94,6 +96,7 @@ const commandSchema = z.discriminatedUnion("type", [
     folderPath:z.string().optional(),
     startChat:z.boolean().optional(),
   }),
+  z.object({ type: z.literal("project.collapse"), id: string, collapsed: z.boolean() }),
   z.object({ type: z.literal("project.select"), id: string }),
   z.object({
     type: z.literal("tab.create"),
@@ -278,17 +281,18 @@ codex.on("notification", ({ method, params: p }: any) => {
       c.messages.push({ id: p.item.id, role: "assistant", text: p.item.text });
   }
   if (
-    method === "item/completed" &&
+    (method === "item/started" || method === "item/completed") &&
     ["commandExecution", "fileChange"].includes(p.item?.type)
   ) {
     const detail =
       p.item.command ??
       p.item.changes?.map((v: any) => v.path).join(", ") ??
       "";
-    note(
-      c,
-      `${p.item.type === "commandExecution" ? "Command" : "Files"}: ${detail}\n${String(p.item.aggregatedOutput ?? p.item.status ?? "").slice(-6000)}`,
-    );
+    const messageId = `activity:${p.item.id}`;
+    const text = `${p.item.type === "commandExecution" ? "Command" : "Files"}: ${detail}\n${String(p.item.aggregatedOutput ?? p.item.status ?? "").slice(-6000)}`;
+    const existing = c.messages.find(message => message.id === messageId);
+    if (existing) existing.text = text;
+    else c.messages.push({id:messageId, role:"system", text});
   }
   if(method==="turn/diff/updated")turns.aggregate(c.id,p.diff??"");
   if(method==="item/completed"&&p.item?.type==="fileChange"&&p.item.status==="completed")turns.record(c.id,p.item.id,p.item.changes??[]);
@@ -539,6 +543,26 @@ async function command(raw: unknown) {
       return;
     case "preferences.update":
       Object.assign(state.preferences,action.values); break;
+    case "history.import": {
+      const selection = await dialog.showOpenDialog(window, {
+        title: "Import browser history", properties: ["openFile"],
+        filters: [{name: "Browser history JSON", extensions: ["json"]}],
+      });
+      if (selection.canceled) break;
+      const path = selection.filePaths[0];
+      if ((await stat(path)).size > 64 * 1024 * 1024) throw new Error("History file exceeds 64 MB.");
+      const entries = z.array(z.object({
+        url: z.url({protocol: /^https?$/}), title: z.string(), visitedAt: z.number().int().nonnegative(),
+      })).safeParse(JSON.parse(await readFile(path, "utf8")));
+      if (!entries.success) throw new Error("Expected a JSON array of pages with an HTTP(S) URL, title, and visitedAt in milliseconds.");
+      const pages = new Map(state.browserHistory.map(page => [page.url, page]));
+      for (const page of entries.data) {
+        const existing = pages.get(page.url);
+        if (!existing || existing.visitedAt < page.visitedAt) pages.set(page.url, page);
+      }
+      state.browserHistory = [...pages.values()].sort((a,b) => b.visitedAt - a.visitedAt).slice(0, 2000);
+      break;
+    }
     case "history.clear": state.browserHistory=[]; break;
     case "group.update": {
       const group=state.groups.find(g=>g.id===action.id);if(!group)throw new Error("Group not found");
@@ -588,6 +612,12 @@ async function command(raw: unknown) {
       const group=state.groups.find(g=>g.id===groupId);if(group)group.collapsed=false;
       break;
     }
+    case "tab.pin": {
+      const tab = state.tabs.find(t => t.id === action.id);
+      if (tab?.kind !== "browser") throw new Error("Choose a browser tab to pin");
+      tab.pinned = action.pinned;
+      break;
+    }
     case "tab.menu": {
       const tab=state.tabs.find(t=>t.id===action.id); if(!tab) return;
       const items:Electron.MenuItemConstructorOptions[]=[
@@ -597,7 +627,7 @@ async function command(raw: unknown) {
       ];
       if(tab.kind==="browser" && tab.resourceId) {
         const resource=state.browsers.find(b=>b.id===tab.resourceId)!;
-        items.unshift({label:"Duplicate tab",click:()=>void command({type:"link.open",target:resource.url,projectId:tab.projectId,sourceTabId:tab.id})},{label:"Reload",click:()=>browser.action(resource.id,"browser.reload")},{label:"Copy URL",click:()=>clipboard.writeText(resource.url)});
+        items.unshift({label:tab.pinned?"Unpin tab":"Pin tab",click:()=>void command({type:"tab.pin",id:tab.id,pinned:!tab.pinned})},{label:"Duplicate tab",click:()=>void command({type:"link.open",target:resource.url,projectId:tab.projectId,sourceTabId:tab.id})},{label:"Reload",click:()=>browser.action(resource.id,"browser.reload")},{label:"Copy URL",click:()=>clipboard.writeText(resource.url)});
       }
       Menu.buildFromTemplate(items).popup({window});return;
     }
@@ -631,6 +661,17 @@ async function command(raw: unknown) {
         groupWithSource(state,tab,sourceId);
       } else {
         const file = fileTarget(action.target,project.folder ?? app.getPath("home"));
+        const actual = await realpath(file.path);
+        const projects = [project, ...state.projects.filter(p => p.id !== project.id)];
+        for (const candidate of projects) {
+          if (!candidate.folder) continue;
+          const root = await realpath(candidate.folder).catch(() => undefined);
+          if (!root) continue;
+          const path = relative(root, actual);
+          if (path && path !== ".." && !path.startsWith(".." + sep) && !isAbsolute(path)) {
+            return command({type:"editor.open", projectId:candidate.id, path, line:file.line || undefined, sourceTabId:sourceId});
+          }
+        }
         await readTextFile(file.path);
         const tab = newTab(state,project.id,"file");
         groupWithSource(state,tab,sourceId);
@@ -956,6 +997,10 @@ app.whenReady().then(async () => {
     terminals.dispose();
     ide.dispose();
     browser.dispose();
+    for (const tab of store.state.tabs.slice()) {
+      if (tab.kind === "browser" && !tab.pinned) closeTab(store.state, tab.id);
+    }
+    if (!store.state.activeTabId) newTab(store.state, store.state.activeProjectId, "launcher");
     store.save();
     browserBridge.dispose();
     connectors.dispose();

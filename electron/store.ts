@@ -13,7 +13,7 @@ import type { Workspace } from "../src/shared";
 const persisted = z.object({
   version: z.literal(1),
   groups:z.array(z.object({id:z.string(),name:z.string(),color:z.string(),collapsed:z.boolean()})).default([]),
-  preferences:z.object({sidebarExpanded:z.boolean().default(true),fontSize:z.number().min(11).max(20),rememberHistory:z.boolean(),openLinksInNewTab:z.boolean()}).default({sidebarExpanded:true,fontSize:13,rememberHistory:true,openLinksInNewTab:true}),
+  preferences:z.object({sidebarExpanded:z.boolean().default(true),fontSize:z.number().min(11).max(20),rememberHistory:z.boolean(),openLinksInNewTab:z.boolean()}).default({sidebarExpanded:true,fontSize:13,rememberHistory:true,openLinksInNewTab:false}),
   browserHistory:z.array(z.object({url:z.string(),title:z.string(),visitedAt:z.number()})).default([]),
   projects: z.array(
     z.object({
@@ -64,6 +64,7 @@ const persisted = z.object({
     z.object({
       id: z.string(),
       projectId: z.string(),
+      pinned:z.boolean().optional(),
       terminalOwner:z.string().optional(),terminalPlacement:z.enum(["tab","panel"]).optional(),terminalProfile:z.string().optional(),terminalTitle:z.string().optional(),
       editorRevision:z.number().optional(),
       diffStaged:z.boolean().optional(),

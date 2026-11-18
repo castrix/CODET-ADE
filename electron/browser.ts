@@ -1,7 +1,8 @@
 import {BrowserProfile} from "./browser-profile";
 import {ElectronChromeExtensions} from "electron-chrome-extensions";
 import {dialog} from "electron";
-import { BrowserWindow, WebContentsView, session, Menu, clipboard } from "electron";
+import { BrowserWindow, WebContentsView, session, Menu, clipboard, shell } from "electron";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { browserAction } from "./browser-tools";
@@ -48,6 +49,8 @@ export class BrowserManager {
     const resource = this.state.browsers.find((b) => b.id === id);
     if (!resource) throw new Error("Browser not found");
     const view = new WebContentsView({
+      // Electron supplies the pre-created popup WebContents on the options object.
+      ...popupOptions,
       webPreferences: {
         ...popupOptions?.webPreferences,
         preload: join(__dirname, "browser-preload.cjs"),
@@ -63,6 +66,13 @@ export class BrowserManager {
     view.setVisible(false);
     const wc = view.webContents;
     resource.webContentsId=wc.id;
+    wc.once("destroyed", () => {
+      if (this.views.get(id) !== view) return;
+      this.views.delete(id);
+      this.observations.delete(id);
+      const tab = this.state.tabs.find(t => t.resourceId === id);
+      if (tab) { closeTab(this.state, tab.id); this.changed(); }
+    });
     this.extensions.addTab(wc,this.window);
     wc.setZoomFactor(this.profile.data.config.zoom);
     const update = () => {
@@ -122,6 +132,28 @@ export class BrowserManager {
     wc.on("context-menu", (_event,p)=>{
       const menu:Electron.MenuItemConstructorOptions[]=[];
       if(p.linkURL && /^https?:/.test(p.linkURL)) menu.push({label:"Open link in new tab",click:()=>openLink(p.linkURL)},{label:"Copy link address",click:()=>clipboard.writeText(p.linkURL)},{type:"separator"});
+      const pageURL = URL.parse(wc.getURL());
+      if (pageURL?.protocol === "https:" && !pageURL.username && !pageURL.password) {
+        menu.push({label:"Open page in default browser for passkey sign-in…", click:async () => {
+          try { await shell.openExternal(pageURL.href); }
+          catch { dialog.showErrorBox("Could not open page", "Check your default browser in System Settings."); }
+        }}, {type:"separator"});
+      }
+      if (p.isEditable && process.platform === "darwin") {
+        const managers = [
+          ["Apple Passwords", "/System/Applications/Passwords.app"],
+          ["1Password", "/Applications/1Password.app"],
+          ["Bitwarden", "/Applications/Bitwarden.app"],
+          ["KeePassXC", "/Applications/KeePassXC.app"],
+        ].filter(([, path]) => existsSync(path));
+        for (const [name, path] of managers) {
+          menu.push({label: `Open ${name}…`, click: async () => {
+            const error = await shell.openPath(path);
+            if (error) dialog.showErrorBox(`Could not open ${name}`, error);
+          }});
+        }
+        if (managers.length) menu.push({type:"separator"});
+      }
       if(p.isEditable) menu.push({role:"undo"},{role:"redo"},{type:"separator"},{role:"cut"},{role:"copy"},{role:"paste"},{role:"selectAll"},{type:"separator"});
       else if(p.selectionText) menu.push({label:"Copy",click:()=>clipboard.writeText(p.selectionText)},{label:"Search selection",click:()=>openLink(`https://www.google.com/search?q=${encodeURIComponent(p.selectionText)}`)},{type:"separator"});
       if(p.srcURL && p.mediaType==="image") menu.push({label:"Open image in new tab",click:()=>openLink(p.srcURL)},{label:"Copy image",click:()=>wc.copyImageAt(p.x,p.y)},{label:"Copy image address",click:()=>clipboard.writeText(p.srcURL)},{type:"separator"});
@@ -132,8 +164,8 @@ export class BrowserManager {
       menu.push({label:"Print...",click:()=>wc.print({})});
       const native=Menu.buildFromTemplate(menu);for(const item of this.extensions.getContextMenuItems(wc,p))native.append(item);native.popup({window:this.window});
     });
-    wc.on("ipc-message", (event, channel, url) => {
-      if (channel === "dao:page-link" && event.senderFrame === wc.mainFrame && typeof url === "string" && /^https?:\/\//i.test(url)) { if(this.state.preferences.openLinksInNewTab) openLink(url); else this.navigate(id,url); }
+    wc.ipc.on("dao:link-preference", event => {
+      event.returnValue = event.senderFrame === wc.mainFrame && this.state.preferences.openLinksInNewTab;
     });
     // Let Chromium create the navigation: replaying only its URL loses POST data,
     // opener relationships and redirect state used by authentication popups.
@@ -149,7 +181,7 @@ export class BrowserManager {
         return child.webContents;
       }};
     });
-    if(!popupOptions)void wc.loadURL(this.normalize(resource.url)).catch(() => {});
+    if(!popupOptions)void wc.loadURL(resource.url === "about:blank" ? resource.url : this.normalize(resource.url)).catch(() => {});
     return view;
   }
   layout(bounds: Bounds) {
@@ -246,11 +278,11 @@ export class BrowserManager {
   close(id: string) {
     const view = this.views.get(id);
     if (!view) return;
+    this.views.delete(id);
     this.window.contentView.removeChildView(view);
     this.profile.forgetPage(view.webContents);
     this.extensions.removeTab(view.webContents);
     view.webContents.close();
-    this.views.delete(id);
     this.observations.delete(id);
   }
   dispose() {

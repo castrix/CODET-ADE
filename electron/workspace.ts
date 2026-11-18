@@ -7,7 +7,7 @@ export function initialWorkspace(): Workspace {
   return {
     version: 1,
     groups: [],
-    preferences: {sidebarExpanded:true,fontSize:13,rememberHistory:true,openLinksInNewTab:true},
+    preferences: {sidebarExpanded:true,fontSize:13,rememberHistory:true,openLinksInNewTab:false},
     browserHistory: [],
     projects: [{ id: projectId, name: "Personal" },{id:"unassigned",name:"No project",isUnassigned:true}],
     conversations: [],

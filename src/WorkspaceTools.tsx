@@ -1,3 +1,4 @@
+import {webAddress} from "./web-address";
 import {X} from "lucide-react";
 import {ConnectorSettings} from "./ConnectorSettings";
 import {BrowserSettings,browserSections} from "./BrowserSettings";
@@ -47,8 +48,21 @@ export function Spotlight({snapshot,run,close,initialQuery=""}:Props & {initialQ
   for(const h of state.browserHistory) results.push({id:h.url,title:h.title,detail:`History · ${h.url}`,command:{type:"link.open",target:h.url,projectId:state.activeProjectId,sourceTabId:state.activeTabId}});
   const matches=results.filter(r=>`${r.title} ${r.detail}`.toLowerCase().includes(q)).slice(0,40);
   matches.unshift(...files.slice(0,40).map(f=>({id:`file:${f.projectId}:${f.path}`,title:f.path,detail:`File · ${f.project}`,command:{type:"editor.open" as const,projectId:f.projectId,path:f.path}})));
-  if(q) matches.push({id:"navigate",title:`Open or search “${query.trim()}”`,detail:"New browser tab",command:{type:"tab.launch",projectId:state.activeProjectId,mode:"browser",text:query.trim()}});
+  const launcher = activeTab?.kind === "launcher" ? activeTab : undefined;
+  const browse = (text:string):Command => ({
+    type:"tab.launch", mode:"browser", text,
+    tabId:launcher?.id, projectId:launcher?.projectId ?? state.activeProjectId,
+  });
+  const address = webAddress(query);
+  const suggestedHost = q && !address && /^[a-z0-9-]+$/i.test(q)
+    ? state.browserHistory.map(page => {
+        try { return new URL(page.url).hostname.replace(/^www\./, ""); } catch { return ""; }
+      }).find(host => host.startsWith(q) && host !== q)
+    : undefined;
+  if (suggestedHost) matches.unshift({id:"complete-host",title:suggestedHost,detail:"Suggested website",command:browse(suggestedHost)});
+  if (address) matches.unshift({id:"navigate",title:query.trim(),detail:"Go to " + address,command:browse(address)});
+  else if(q) matches.push({id:"navigate",title:`Search the web for “${query.trim()}”`,detail:launcher ? "This tab" : "New browser tab",command:browse(query.trim())});
   useEffect(()=>{setSelected(0);},[query]);useEffect(()=>{active.current?.scrollIntoView({block:"nearest"});},[selected]);
   function choose(index:number){const result=matches[index];if(result){void run(result.command);close();}}
-  return <div className="spotlight-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)close();}}><section role="dialog" aria-modal="true" aria-label="Search workspace" className="spotlight" onKeyDown={e=>{if(e.key==="Escape"){e.preventDefault();close();}if(e.key==="ArrowDown"){e.preventDefault();setSelected(i=>Math.min(i+1,matches.length-1));}if(e.key==="ArrowUp"){e.preventDefault();setSelected(i=>Math.max(i-1,0));}if(e.key==="Enter"){e.preventDefault();choose(selected);}}}><div className="spotlight-input"><input ref={search} autoFocus aria-label="Search files, tabs, chats, projects, history or enter URL" placeholder="Search anything or enter a URL…" value={query} onChange={e=>setQuery(e.target.value)}/><kbd>Esc</kbd></div><div className="spotlight-results">{matches.map((r,i)=><button ref={selected===i?active:undefined} key={r.id} className={selected===i?"selected":""} onMouseEnter={()=>setSelected(i)} onClick={()=>choose(i)}><span>{r.title}</span><small>{r.detail}</small></button>)}{!matches.length && <p>No results</p>}</div>{fileError && <p role="status">{fileError}</p>}<footer>↑ ↓ to navigate · Enter to open</footer></section></div>;
+  return <div className="spotlight-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)close();}}><section role="dialog" aria-modal="true" aria-label="Search workspace" className="spotlight" onKeyDown={e=>{if(e.nativeEvent.isComposing)return;if(e.key==="Tab" && !e.shiftKey && selected===0 && suggestedHost && e.target===search.current){e.preventDefault();setQuery(suggestedHost);return;}if(e.key==="Escape"){e.preventDefault();close();}if(e.key==="ArrowDown"){e.preventDefault();setSelected(i=>Math.min(i+1,matches.length-1));}if(e.key==="ArrowUp"){e.preventDefault();setSelected(i=>Math.max(i-1,0));}if(e.key==="Enter"){e.preventDefault();choose(selected);}}}><div className="spotlight-input"><input ref={search} autoFocus aria-label="Search files, tabs, chats, projects, history or enter URL" placeholder="Search anything or enter a URL…" value={query} onChange={e=>setQuery(e.target.value)}/><kbd>Esc</kbd></div><div className="spotlight-results">{matches.map((r,i)=><button ref={selected===i?active:undefined} key={r.id} className={selected===i?"selected":""} onMouseMove={()=>setSelected(i)} onClick={()=>choose(i)}><span>{r.title}</span><small>{r.detail}</small></button>)}{!matches.length && <p>No results</p>}</div>{fileError && <p role="status">{fileError}</p>}<footer>{suggestedHost && selected===0 ? "Tab to complete · " : ""}↑ ↓ to navigate · Enter to open</footer></section></div>;
 }

@@ -1,5 +1,5 @@
 import {useEffect,useState} from "react";
-import {TerminalSquare,Code2,ChevronRight,Globe2,MessageSquare,Plus,X,Ellipsis} from "lucide-react";
+import {TerminalSquare,Code2,ChevronRight,Pin,Globe2,MessageSquare,Plus,X,Ellipsis} from "lucide-react";
 import type {Command,Workspace,WorkTab} from "./shared";
 const colors=["#70b8ff","#b69cff","#f28bb5","#e9ab62","#72cba0","#aaaaaa"];
 export function TabStrip({state,run,title,create,onOverlay}:{onOverlay:(open:boolean)=>void;state:Workspace;run:(c:Command)=>Promise<void>;title:(t:WorkTab)=>string;create:()=>void}){
@@ -20,7 +20,7 @@ export function TabStrip({state,run,title,create,onOverlay}:{onOverlay:(open:boo
     onDragOver={e=>{e.preventDefault();e.stopPropagation();setOver(t.id);}} onDrop={e=>drop(e,t.id,t.groupId ?? null)}
     className={`tab ${t.groupId&&t.kind==="chat"?"group-owner":""} ${t.id===state.activeTabId?"active":""} ${over===t.id?"drop-target":""} ${dragging===t.id?"dragging":""}`}
     onContextMenu={e=>{e.preventDefault();setMenuTab(t);}}>
-    <button className="tab-select" title={t.groupId&&t.kind==="chat"?"Group conversation":undefined} onClick={()=>void run({type:"tab.select",id:t.id})}>{t.kind==="terminal"?<TerminalSquare size={14}/>:t.kind==="ide"?<Code2 size={14}/>:t.kind==="browser"?<Globe2 size={14}/>:t.kind==="chat"?<MessageSquare size={14}/>:<Plus size={14}/>}<span>{title(t)}</span></button>
+    <button className="tab-select" title={t.groupId&&t.kind==="chat"?"Group conversation":undefined} onClick={()=>void run({type:"tab.select",id:t.id})}>{t.kind==="terminal"?<TerminalSquare size={14}/>:t.kind==="ide"?<Code2 size={14}/>:t.kind==="browser"?(t.pinned?<Pin size={14} aria-label="Pinned"/>:<Globe2 size={14}/>):t.kind==="chat"?<MessageSquare size={14}/>:<Plus size={14}/>}<span>{title(t)}</span></button>
     <button className="tab-close" aria-label={`Close ${title(t)}`} onClick={()=>void run({type:"tab.close",id:t.id})}><X size={12}/></button>
   </div>;
   const seen=new Set<string>();
@@ -45,7 +45,7 @@ export function TabStrip({state,run,title,create,onOverlay}:{onOverlay:(open:boo
   </div>{menuTab && <div className="group-editor-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setMenuTab(undefined);}}><div className="group-editor tab-context-menu" role="dialog" aria-label="Tab actions" onKeyDown={e=>{if(e.key==="Escape")setMenuTab(undefined);}}>
     <button autoFocus onClick={()=>{void run(menuTab.groupId?{type:"tab.move",id:menuTab.id,groupId:null}:{type:"group.create",tabId:menuTab.id});setMenuTab(undefined);}}>{menuTab.groupId?"Remove from group":"Add to new group"}</button>
     {state.groups.filter(g=>g.id!==menuTab.groupId && state.tabs.some(t=>t.groupId===g.id && t.projectId===menuTab.projectId)).map(g=><button key={g.id} onClick={()=>{void run({type:"tab.move",id:menuTab.id,groupId:g.id});setMenuTab(undefined);}}>Move to {g.name}</button>)}
-    {menuTab.kind==="browser" && <><button onClick={()=>{const b=state.browsers.find(b=>b.id===menuTab.resourceId);if(b)void run({type:"link.open",target:b.url,projectId:menuTab.projectId,sourceTabId:menuTab.id});setMenuTab(undefined);}}>Duplicate tab</button><button onClick={()=>{if(menuTab.resourceId)void run({type:"browser.reload",id:menuTab.resourceId});setMenuTab(undefined);}}>Reload</button></>}
+    {menuTab.kind==="browser" && <><button onClick={()=>{void run({type:"tab.pin",id:menuTab.id,pinned:!menuTab.pinned});setMenuTab(undefined);}}>{menuTab.pinned?"Unpin tab":"Pin tab"}</button><button onClick={()=>{const b=state.browsers.find(b=>b.id===menuTab.resourceId);if(b)void run({type:"link.open",target:b.url,projectId:menuTab.projectId,sourceTabId:menuTab.id});setMenuTab(undefined);}}>Duplicate tab</button><button onClick={()=>{if(menuTab.resourceId)void run({type:"browser.reload",id:menuTab.resourceId});setMenuTab(undefined);}}>Reload</button></>}
     <button onClick={()=>{void run({type:"tab.close",id:menuTab.id});setMenuTab(undefined);}}>Close tab</button>
     <button onClick={()=>setMenuTab(undefined)}>Cancel</button>
   </div></div>}{editing && <div className="group-editor-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setEditing(undefined);}}><form className="group-editor" role="dialog" aria-label="Edit tab group" onKeyDown={e=>{if(e.key==="Escape")setEditing(undefined);}} onSubmit={e=>{e.preventDefault();if(name.trim()){void run({type:"group.update",id:editing,name:name.trim()});setEditing(undefined);}}}>
