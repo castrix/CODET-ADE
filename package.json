@@ -1,0 +1,50 @@
+{
+  "name": "dao-ade",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "An independent workspace for conversations, browsers and development tools",
+  "main": "dist-electron/main.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "tsc --noEmit && vite build && node scripts/build-electron.mjs",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "@agentclientprotocol/claude-agent-acp": "^0.107.3",
+    "@agentclientprotocol/sdk": "^2.7.0",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@openai/codex": "0.169.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/addon-serialize": "^0.14.0",
+    "@xterm/xterm": "^6.0.0",
+    "diff": "9.0.0",
+    "electron-chrome-extensions": "^4.10.0",
+    "electron-chrome-web-store": "^0.13.0",
+    "ignore": "^7.0.16",
+    "lucide-react": "^1.73.0",
+    "monaco-editor": "^0.57.0",
+    "node-pty": "^1.1.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "typescript-language-server": "^6.1.0",
+    "vscode-jsonrpc": "^10.0.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "electron": "^45.3.3",
+    "esbuild": "^0.28.2",
+    "prettier": "^3.10.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  },
+  "overrides": {
+    "adm-zip": "0.6.1",
+    "dompurify": "^3.4.17"
+  }
+}

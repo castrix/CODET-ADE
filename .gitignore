@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-electron/
+.codex-schema/
+test-results/
+*.log
+.env
+.env.*
+!.env.example
+.runtime/
